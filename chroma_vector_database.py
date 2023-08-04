@@ -1,6 +1,3 @@
-# Truncate texts to meet the limit of ~32000 bytes per embedding less overhead
-# ...but remove text from the early comments, not the end comments.
-
 MAX_LEN = 20000  # per https://platform.openai.com/docs/guides/embeddings/what-are-embeddings
 """
 MODEL NAME              TOKENIZER	   MAX INPUT TOKENS  OUTPUT DIMENSIONS
@@ -38,10 +35,8 @@ from chromadb import PersistentClient
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from time import sleep
 
-OPENAI_API_KEY = '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'  # replace this ASAP please
-
 embed_fn = OpenAIEmbeddingFunction(api_key=OPENAI_API_KEY,
-              model_name="text-embedding-ada-002")  # current OpenAI embeddings
+              model_name="text-embedding-ada-002") 
 
 client = PersistentClient(path="chroma-db")
 
