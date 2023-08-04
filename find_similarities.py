@@ -1,28 +1,3 @@
-
-Conversation opened. 1 read message.
-
-Skip to content
-Using ORO NETWORKS LLC Mail with screen readers
-
-1 of 44
-Scripts for eclidean and cosine
-Inbox
-
-Gino Limon
-Attachments
-5:55 PM (53 minutes ago)
-to me
-
-the main script to use it the one that its called cosines and eclidean that is the main one that works perfectly.
-
-I will send more to consider for the repository as proof of work 
- issues.json
-
-7
- Attachments
-  •  Scanned by Gmail
-Thanks, I'll check it out!Thanks, I'll check them out.Thank you!
-
 from langchain import OpenAI
 from langchain.chains import ConversationChain
 from langchain.llms import OpenAI
@@ -61,5 +36,3 @@ pinecone.init(
 index = pinecone.Index('json-embedding-768')
 
 index.describe_index_stats()
-find_similarity.py
-Displaying find_similarity.py.
