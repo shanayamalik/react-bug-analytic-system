@@ -1,8 +1,5 @@
 REPO = 'facebook/react'
 
-#GitHub read-only access token will expire 15 October 2023
-GITHUB_TOKEN = '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'
-
 from requests import get
 from time import sleep
 import json
