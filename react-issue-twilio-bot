@@ -1,0 +1,191 @@
+from flask import Flask, render_template, request
+import os
+from chromadb import PersistentClient
+from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
+import openai
+import json
+from requests import get
+from twilio.rest import Client
+from twilio.twiml.messaging_response import MessagingResponse
+
+
+OPENAI_API_KEY = os.environ['OPENAI_KEY']
+
+GPT_MODEL='gpt-3.5-turbo-16k' # fast with 16,000 token window; TODO: select gpt-3.5-turbo when short enough context
+PROMPT_MAX_LEN = 50000
+
+embed_fn = OpenAIEmbeddingFunction(api_key=OPENAI_API_KEY,
+                                   model_name="text-embedding-ada-002")  # current OpenAI embeddings
+
+client = PersistentClient(path="chroma-db")
+
+vectordb = client.get_collection("react-issues",  # was .get_or_create_collection to make
+                                 embedding_function=embed_fn)
+
+
+REPO = 'facebook/react'
+ENDPOINT = 'https://api.github.com/repos/' + REPO + '/issues/'
+GITHUB_HEADERS = {'Authorization': 'Bearer ' + os.environ['GITHUB_KEY'],
+           'Accept': 'application/vnd.github+json',
+           'X-GitHub-Api-Version': '2022-11-28'}
+MAX_LEN = 20000
+
+def get_issue(issuenum):  # load from given issue number
+  # docs at https://docs.github.com/en/rest/issues/issues#get-an-issue
+  response = get(ENDPOINT + str(issuenum), headers=GITHUB_HEADERS)
+  gh_issue = response.json()
+  #print(ENDPOINT + str(issuenum), response.status_code, gh_issue)
+  if not gh_issue or response.status_code != 200:
+    return None
+
+  issue = {}
+  issue['number'] = issuenum
+  issue['title'] = gh_issue['title']
+  issue['state'] = gh_issue['state']
+  issue['labels'] = [label['name'] for label in gh_issue['labels']]
+  if gh_issue['body']:  # occasionally None
+    issue['body'] = gh_issue['body']
+
+  comments = []
+  if int(gh_issue['comments']):
+    ghcomments = get(gh_issue['comments_url'], headers=GITHUB_HEADERS)
+    if response.status_code == 200:
+      for comment in ghcomments.json():
+        if isinstance(comment, dict) and 'body' in comment:  # cant remember why but needed
+          comments.append(comment['body'])
+      issue['comments'] = comments
+
+  while len(repr(issue)) > MAX_LEN: # maximum embedding size
+    if issue['comments']:
+      del issue['comments'][0] # jettison earliest comments to get small
+      continue
+    issue['body'] = issue['body'][:len(issue['body'])
+                                   - (len(repr(issue)) - MAX_LEN)]  # trim excess
+
+  ids = [str(issuenum)]
+  metadata = {'state': issue['state']}
+  for label in issue['labels']:
+    metadata['label'] = 'yes'
+      
+  vectordb.add(documents=[repr(issue)], metadatas=[metadata], ids=ids)
+
+  return vectordb.count()  # return total number of issues now in chroma-db
+
+
+def solve_pertinent(issue):
+  issuedata = vectordb.get(ids=[str(issue)], include=["embeddings", "documents"])
+
+  if len(issuedata['ids']) > 0:
+    issuetext = issuedata['documents'][0]
+    issueemb = issuedata['embeddings'][0]
+  else:
+    newissue = get_issue(issue)
+    if newissue == None:
+      return "Can't find issue number " + str(issue)
+    else:  # it's in chroma-db now
+      issuedata = vectordb.get(ids=[str(issue)], include=["embeddings", "documents"])
+      issuetext = issuedata['documents'][0]
+      issueemb = issuedata['embeddings'][0]
+
+  pertissues = vectordb.query(query_embeddings=[issueemb], n_results=21,
+                              where={'state': 'closed'})
+  if pertissues['ids'][0][0] == issue:
+    pertissues = pertissues['documents'][0][1:] #remove identical issue from search results
+  else:
+    pertissues = pertissues['documents'][0]
+
+  intro = ('Consider the following GitHub issue for React:\n\n' +
+           json.dumps(eval(issuetext), indent=2).replace('\\n', '\n') +
+           '\n\nHere are some closed issues which may help resolve it:')
+
+  # Follow introduction by as many retrieved issues as can fit
+  for doc in pertissues:
+    pretty = json.dumps(eval(doc), indent=2)
+    if len(intro + pretty) > PROMPT_MAX_LEN:  ### TODO: more precise; select smaller context model when possible
+      break
+    else:
+      intro += '\n\n' + pretty
+
+  messages = [{"role": "system", "content": "You answer questions about React issues."},
+              {"role": "user", "content": intro + '\n\nWhich of those issues might '
+                                          'help resolve issue ' + str(issue) + ' and how '
+                                          'might it be resolved?'}]
+  print('prompt length:', len(messages[1]['content']))
+    
+  #return the call to GPT 3.5 API with temperature 0.0 to receive same response each time
+  return openai.ChatCompletion.create(model=GPT_MODEL, messages=messages,
+                                      temperature=0.0 # quasi-reproducibility for refinement
+                                     )["choices"][0]["message"]["content"]
+
+
+def ask(question):  # get hopefully pertinent issues
+
+  # Look up pertinent issues
+  docs = vectordb.query(query_texts=[question], n_results=20)['documents'][0]  ### ???: is 20 a good number?
+
+  intro = 'Use the following GitHub issues for React to help answer the subsequent question.'
+  ### ??? maybe add: ' If you don't know and the answer cannot be found in the issues, write
+  ### "I could not find an answer."' Prompt engineering should happen with the company API key. :-)
+
+  # Follow introduction by as many retrieved issues as can fit
+  for doc in docs:
+    pretty = json.dumps(eval(doc), indent=2)
+    if len(intro + question + pretty) > PROMPT_MAX_LEN:  ### TODO: more precise; select smaller context model when possible
+      break
+    else:
+      intro += '\n\n' + pretty
+
+  messages = [{"role": "system", "content": "You answer questions about React issues."},
+              {"role": "user", "content": intro + '\n\nQUESTION: ' + question}]
+
+  #return the call to GPT 3.5 API with temperature 0.0 to receive same response each time
+  return openai.ChatCompletion.create(model=GPT_MODEL, messages=messages,
+                                      temperature=0.0 # quasi-reproducibility for refinement
+                                     )["choices"][0]["message"]["content"]
+
+
+account_sid = os.environ['TWILIO_SID']
+auth_token = os.environ['TWILIO_TOKEN']
+
+app = Flask(__name__)
+
+def sms_reply(message, phone):
+  if message.lower().startswith('help '):
+    reply = ask(message.split()[1:])
+  elif message.lower().startswith('issue '):
+    reply = solve_pertinent(message.split()[1])
+  else:
+    reply = 'Commands are "help <problem description>" or "issue <issue number>"'
+  
+  client = Client(account_sid, auth_token)
+  client.messages.create(body=reply, from_='+18778306766', to=phone)
+
+@app.route("/sms", methods=['POST'])
+def incoming_sms():
+    # Get the message the user sent our Twilio number
+    body = request.values.get('Body', None)
+    phone = request.values.get('From')
+
+    # new thread here
+
+    return '<Response></Response>'
+
+@app.route('/', methods=['POST', 'GET'])
+def index():
+  if request.method == 'GET': 
+    return render_template('index.html')
+  else:
+    if request.form.get('problem'):
+      return ('My attempt at the solution is: \n' +
+              '<p style="white-space: pre-wrap;">\n' +
+              ask(request.form.get('problem')))
+              
+    elif request.form.get('issue'):
+      return ('My attempt at the solution is: \n' +
+              '<p style="white-space: pre-wrap;">\n' +
+              solve_pertinent(int(request.form.get('issue'))))
+    else:
+      return 'Nothing entered. Go back and try again.'
+
+
+app.run(host='0.0.0.0', port=81)
