@@ -44,11 +44,19 @@ React, a popular JavaScript library for building user interfaces, powers numerou
 - **User Interaction:** The code interacts with the user to show them similar issues based on the computed similarity scores.
 
 ## Setup and Usage
-1. Clone the repository: git clone https://github.com/shanayamalik/react-bug-analytic-system.git
-2. Navigate to the project directory: cd react-bug-analytic-system
-3. Install the required packages: pip install -r requirements.txt
-4. Run the main script: python main.py
-5. Follow the on-screen instructions to analyze and track bugs using the system.
+1. Clone the repository
+      ```bash
+      git clone https://github.com/shanayamalik/react-bug-analytic-system.git
+3. Navigate to the project directory
+      ```bash
+      cd react-bug-analytic-system
+5. Install the required packages
+     ```bash
+      pip install -r requirements.txt
+7. Run the main script
+      ```bash
+      python main.py
+9. Follow the on-screen instructions to analyze and track bugs using the system.
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
