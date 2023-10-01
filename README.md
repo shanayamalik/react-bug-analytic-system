@@ -29,7 +29,7 @@ React, a popular JavaScript library for building user interfaces, powers numerou
 4. **Testing – Frequency Analysis:** Quantify the occurrence of similar bugs.
 5. **Similarity Search:** Use Cosine similarity and L2 (Euclidean) similarity measures.
 6. **GitHub Repository:** Host the codebase for the system.
-7. **Results:** Prepare a demo to showcase the system's capabilities.
+7. **Results:** Showcase the system's capabilities.
 8. **Next Steps:** Integrate a debugging component and perform sentiment analysis.
 
 ## Code Overview
@@ -48,7 +48,7 @@ React, a popular JavaScript library for building user interfaces, powers numerou
 2. Navigate to the project directory: cd react-bug-analytic-system
 3. Install the required packages: pip install -r requirements.txt
 4. Run the main script: python main.py
-5. 5. Follow the on-screen instructions to analyze and track bugs using the system.
+5. Follow the on-screen instructions to analyze and track bugs using the system.
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
