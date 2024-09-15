@@ -1,5 +1,3 @@
-# react-bug-analytic-system
-
 # Enhancing Bug Tracking in React Github using Large Language Models
 
 ## Project Overview
