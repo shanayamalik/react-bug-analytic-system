@@ -12,7 +12,7 @@ React, a popular JavaScript library for building user interfaces, powers numerou
 - [License](#license)
 
 ## Expected Outcomes
-### Key Goals:
+### Key Goals
 - **Bug Analytics with LLM:** Utilize natural language processing to perform in-depth bug analytics.
 - **Issue Similarity Identification:** Intelligently analyze user-submitted issues to find similar closed issues.
 - **Frequency Analysis:** Measure the frequency of similar issues to prioritize bug fixes.
