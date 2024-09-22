@@ -57,7 +57,7 @@ React, a popular JavaScript library for building user interfaces, powers numerou
 9. Follow the on-screen instructions to analyze and track bugs using the system.
 
 ## Contributing
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+Please create a pull request of what you would like to change.
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
