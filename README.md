@@ -1,7 +1,7 @@
 # Enhancing Bug Tracking in React Github using Large Language Models
 
 ## Project Overview
-React, a popular JavaScript library for building user interfaces, powers numerous web applications worldwide. This project aims to devise a bug tracking and resolution system by leveraging Large Language Models (LLM) analytics. By analyzing closed issues, the system can identify approximately twenty issues similar to user-submitted bugs and then provide relevant data on issue frequency, bug classification, and potential solutions—streamlining the bug resolution process.
+React, a popular JavaScript library for building user interfaces, powers numerous web applications worldwide. This project aims to devise a bug tracking and resolution system by leveraging Large Language Models (LLM) analytics. The system uses to closed issues to identify approximately twenty issues similar to user-submitted bugs and then provide relevant data on issue frequency, bug classification, and potential solutions—streamlining the bug resolution process.
 
 ## Table of Contents
 - [Expected Outcomes](#expected-outcomes)
